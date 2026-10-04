@@ -1,0 +1,239 @@
+{
+  "name": "My workflow 7",
+  "nodes": [
+    {
+      "parameters": {
+        "formTitle": "Receipt Expense Tracker",
+        "formDescription": "Upload your receipt to automatically extract and record your expense.",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Upload Receipt",
+              "fieldType": "file"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.5,
+      "position": [
+        0,
+        0
+      ],
+      "id": "58fdcc16-6f77-4070-8fad-33a1b977a99c",
+      "name": "On form submission",
+      "webhookId": "6cb9f8b6-811b-40d5-bbd4-377dd11120ec"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.groq.com/openai/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer PASTE_YOUR_NEW_GROQ_KEY_HERE"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  model: 'meta-llama/llama-4-scout-17b-16e-instruct',\n  messages: [{ role: 'user', content: [\n    { type: 'text', text: 'You are reading a receipt image. Extract: vendor (store/merchant name), date (format YYYY-MM-DD, the date printed on the receipt), total_amount (final grand total paid, as a number only), currency (3-letter code like INR, USD), category (one of: Food, Groceries, Travel, Shopping, Utilities, Health, Entertainment, Other). Return ONLY valid JSON: {\"vendor\":\"\",\"date\":\"\",\"total_amount\":0,\"currency\":\"\",\"category\":\"\"}. Use null if a value is not visible. Do NOT guess or use todays date.' },\n    { type: 'image_url', image_url: { url: 'data:' + $json.mimeType + ';base64,' + $json.base64 } }\n  ] }],\n  response_format: { type: 'json_object' },\n  temperature: 0\n}) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        416,
+        0
+      ],
+      "id": "1a68ca24-6a51-4dd2-9304-3dc7ed9146bf",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first();\n\nconst binaryData = await this.helpers.getBinaryDataBuffer(\n  0,\n  'Upload_Receipt'\n);\n\nconst base64 = binaryData.toString('base64');\n\nreturn [\n  {\n    json: {\n      mimeType: item.binary.Upload_Receipt.mimeType,\n      fileName: item.binary.Upload_Receipt.fileName,\n      base64: base64\n    }\n  }\n];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        208,
+        0
+      ],
+      "id": "e8f83c4b-6a35-41af-a32e-7c8c35623807",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "jsCode": "let content = $json.choices[0].message.content;\nif (typeof content === 'string') content = content.replace(/```json|```/g,'').trim();\nconst r = typeof content === 'string' ? JSON.parse(content) : content;\nreturn [{ json: {\n  Vendor: r.vendor ?? '',\n  Date: r.date ?? '',\n  'Total Amount': r.total_amount ?? '',\n  Currency: r.currency ?? '',\n  Category: r.category ?? ''\n} }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        624,
+        0
+      ],
+      "id": "f7c8cf8d-72ac-44fe-a603-95cd21937d27",
+      "name": "Code in JavaScript1"
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "19UWZNeO6_BnUwY5i_Y2EEzArUKCVVQs9mNhnxms2S0o",
+          "mode": "list",
+          "cachedResultName": "Receipt Expense Tracker",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/19UWZNeO6_BnUwY5i_Y2EEzArUKCVVQs9mNhnxms2S0o/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Receipts",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/19UWZNeO6_BnUwY5i_Y2EEzArUKCVVQs9mNhnxms2S0o/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Vendor": "={{ $json[\"Vendor\"] }}",
+            "Date": "={{ $json[\"Date\"] }}",
+            "Total Amount": "={{ $json[\"Total Amount\"] }}",
+            "Currency": "={{ $json[\"Currency\"] }}",
+            "Category": "={{ $json[\"Category\"] }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Vendor",
+              "displayName": "Vendor",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Date",
+              "displayName": "Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Total Amount",
+              "displayName": "Total Amount",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Currency",
+              "displayName": "Currency",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Category",
+              "displayName": "Category",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        832,
+        0
+      ],
+      "id": "c63690b6-fe3a-4d5e-a6b2-57855fba9d93",
+      "name": "Append row in sheet1",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "lKbZqa2QSdtdQ922",
+          "name": "Google Sheets account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "On form submission": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript1": {
+      "main": [
+        [
+          {
+            "node": "Append row in sheet1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "1530bbf1-5f25-4e01-9974-62b6b652c66e",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "6116efae1b73f9b9bb768c8337ecbb092085f49e1b25fc9414ca34c2970a3d57"
+  },
+  "id": "LzBk8Zuet5YxKN5E",
+  "tags": []
+}
